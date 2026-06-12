@@ -81,20 +81,6 @@ int silicon_detector_analyser::process_event(PHCompositeNode *topNode)
     exit(1);
   }
 
-  geantGeomMvtx = findNode::getClass<PHG4CylinderGeomContainer>(topNode, "CYLINDERGEOM_MVTX");
-  if (!geantGeomMvtx)
-  {
-    std::cout << __FILE__ << "::" << __func__ << " - CYLINDERGEOM_MVTX missing, doing nothing." << std::endl;
-    exit(1);
-  }
-
-  geantGeomIntt = findNode::getClass<PHG4CylinderGeomContainer>(topNode, "CYLINDERGEOM_INTT");
-  if (!geantGeomIntt)
-  {
-    std::cout << __FILE__ << "::" << __func__ << " - CYLINDERGEOM_INTT missing, doing nothing." << std::endl;
-    exit(1);
-  }
-
   mvtx_event_header = findNode::getClass<MvtxEventInfo>(topNode, "MVTXEVENTHEADER");
   if (!mvtx_event_header)
   {
@@ -128,9 +114,6 @@ int silicon_detector_analyser::process_event(PHCompositeNode *topNode)
 
   numberL1s = mvtx_event_header->get_number_L1s();
   layer = 0;
-  global[0] = 0.;
-  global[1] = 0.;
-  global[2] = 0.;
   clusLayer.clear();
   clusPhi.clear();
   clusEta.clear();
@@ -139,14 +122,60 @@ int silicon_detector_analyser::process_event(PHCompositeNode *topNode)
   clusY.clear();
   clusZ.clear();
 
-  if (vertexMap->size() != 1)
-  {
-    return Fun4AllReturnCodes::ABORTEVENT;
-  }
   SvtxVertex* thePV = vertexMap->begin()->second;
   vertex_x = thePV->get_x();
   vertex_y = thePV->get_y();
   vertex_z = thePV->get_z();
+
+  triggerBCO = L1_BCOs.size() > 0 ? L1_BCOs[0] : event;
+  for (auto& iter : *trackMap)
+  {
+    TrackSeed* silseed = iter.second->get_silicon_seed(); 
+    TVector2 LocalUse;
+    TVector3 ClusterWorld;
+
+    for (SvtxTrack::ConstClusterKeyIter iter_local = silseed->begin_cluster_keys();
+     iter_local != silseed->end_cluster_keys();
+     ++iter_local)
+    {
+      TrkrDefs::cluskey cluster_key = *iter_local;
+      layer = TrkrDefs::getLayer(cluster_key);
+
+      TrkrCluster *cluster = trktClusterContainer->findCluster(cluster_key);
+
+      localX = cluster->getLocalX();
+      localY = cluster->getLocalY();
+
+      LocalUse.SetX(localX);
+      LocalUse.SetY(localY);
+
+      auto surface = actsGeom->maps().getSurface(cluster_key, cluster);
+
+      switch (TrkrDefs::getTrkrId(cluster_key))
+      {
+        case TrkrDefs::TrkrId::mvtxId:
+        {
+          ClusterWorld = CylinderGeom_MvtxHelper::get_world_from_local_coords(surface, actsGeom, LocalUse);
+          break;
+        }
+        case TrkrDefs::TrkrId::inttId:
+        {
+          ClusterWorld = CylinderGeomInttHelper::get_world_from_local_coords(surface, actsGeom, LocalUse);
+          break;
+        }
+        default:
+          break;
+      }
+
+      clusLayer.push_back(layer);
+      clusPhi.push_back(iter.second->get_phi());
+      clusEta.push_back(iter.second->get_eta());
+      clusSize.push_back(cluster->getAdc());
+      clusX.push_back(ClusterWorld.X());
+      clusY.push_back(ClusterWorld.Y());
+      clusZ.push_back(ClusterWorld.Z());
+    }
+  }
 
   outTree->Fill();
 

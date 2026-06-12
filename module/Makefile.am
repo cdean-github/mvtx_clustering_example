@@ -25,6 +25,8 @@ libVertexCompare_la_LIBADD = \
   -lphool \
   -lSubsysReco \
   -lglobalvertex \
+  -lintt \
+  -lmvtx \
   -lffarawobjects
 
 BUILT_SOURCES = testexternals.cc

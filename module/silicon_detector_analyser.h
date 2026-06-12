@@ -109,7 +109,6 @@ class silicon_detector_analyser : public SubsysReco
   int layer = 0;
   float localX = 0.;
   float localY = 0.;
-  float global[3] = {0};
   std::string m_evt_display_path = ".";
   std::string m_run_date = "2024-04-14";
 
