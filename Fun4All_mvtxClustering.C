@@ -53,16 +53,16 @@ bool isGood(const string &infile)
   return goodfile;
 }
 
-void Fun4All_mvtxClustering(string runNumber = "68626", string outputDir = "", const int nEvents = 3e3)
+void Fun4All_mvtxClustering(const int runNumber = 68626, string outputDir = "", const int nEvents = 3e3)
 {
   Fun4AllServer *se = Fun4AllServer::instance();
   se->Verbosity(1);
 
   Enable::CDB = true;
   auto rc = recoConsts::instance();
-  rc->set_IntFlag("RUNNUMBER", i_runNumber);
+  rc->set_IntFlag("RUNNUMBER", runNumber);
   rc->set_StringFlag("CDB_GLOBALTAG", "ProdA_2024");
-  rc->set_uint64Flag("TIMESTAMP", i_runNumber);
+  rc->set_uint64Flag("TIMESTAMP", runNumber);
 
   std::string geofile = CDBInterface::instance()->getUrl("Tracking_Geometry");
   Fun4AllRunNodeInputManager *ingeo = new Fun4AllRunNodeInputManager("GeoIn");
@@ -130,7 +130,7 @@ void Fun4All_mvtxClustering(string runNumber = "68626", string outputDir = "", c
 
   Mvtx_Clustering();
 
-  silicon_detector_analyser cluster_analyser = new silicon_detector_analyser();
+  silicon_detector_analyser *cluster_analyser = new silicon_detector_analyser();
   se->registerSubsystem(cluster_analyser);
 
   se->run(nEvents);

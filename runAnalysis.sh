@@ -3,9 +3,10 @@
 currentDir=$(pwd)
 outDir=${currentDir}/Silicon_MBD_Comparisons
 
-nEvents=3000
+nEvents=100
 
 source /cvmfs/sphenix.opensciencegrid.org/alma9.2-gcc-14.2.0/opt/sphenix/core/bin/sphenix_setup.sh -n new
+#source /opt/sphenix/core/bin/sphenix_setup.sh -n new 
 
 export MYINSTALL=$currentDir/module/install
 export LD_LIBRARY_PATH=$MYINSTALL/lib:$LD_LIBRARY_PATH
@@ -23,7 +24,8 @@ for folder in "${folders[@]}"; do
   mkdir -p ${dataTopDir}/${folder}
 done
 
-dataDir="/data/sphenix-data/rawData"
+#dataDir="/data/sphenix-data/rawData" #MIT
+dataDir="/sphenix/lustre01/sphnxpro/physics" #SCDF
 
 declare -A pairs=(["gl1daq"]="${dataDir}/GL1/physics/GL1_physics_gl1daq-"
                   ["mvtx_flx"]="${dataDir}/MVTX/physics/physics_mvtx")
@@ -66,4 +68,4 @@ for i in "${!pairs[@]}"; do
 done
 
 echo "Running macros"
-root -l -q -b Fun4All_mvtxClustering.C\(\"${runNumber}\",\"${dataTopDir}\",${nEvents}\)
+root -l -q -b Fun4All_mvtxClustering.C\(${runNumber},\"${dataTopDir}\",${nEvents}\)

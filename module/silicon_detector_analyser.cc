@@ -31,12 +31,7 @@ int silicon_detector_analyser::Init(PHCompositeNode *topNode)
 
   outTree->Branch("event", &event, "event/I");
   outTree->Branch("BCO", &triggerBCO, "triggerBCO/l");
-  outTree->Branch("vertex_x", &vertex_x, "vertex_x/F");
-  outTree->Branch("vertex_y", &vertex_y, "vertex_y/F");
-  outTree->Branch("vertex_z", &vertex_z, "vertex_z/F");
   outTree->Branch("clusLayer", &clusLayer);
-  outTree->Branch("clusPhi", &clusPhi);
-  outTree->Branch("clusEta", &clusEta);
   outTree->Branch("clusSize", &clusSize);
   outTree->Branch("clusX", &clusX);
   outTree->Branch("clusY", &clusY);
@@ -98,50 +93,29 @@ int silicon_detector_analyser::process_event(PHCompositeNode *topNode)
     }
   }
 
-  SvtxTrackMap* trackMap = findNode::getClass<SvtxTrackMap>(topNode, "SvtxTrackMap");
-  if (!trackMap)
-  {
-    std::cout << __FILE__ << "::" << __func__ << " - SvtxTrackMap missing, doing nothing." << std::endl;
-    exit(1);
-  }
-
-  SvtxVertexMap* vertexMap = findNode::getClass<SvtxVertexMap>(topNode, "SvtxVertexMap");
-  if (!vertexMap)
-  {
-    std::cout << __FILE__ << "::" << __func__ << " - SvtxVertexMap missing, doing nothing." << std::endl;
-    exit(1);
-  }
-
   numberL1s = mvtx_event_header->get_number_L1s();
   layer = 0;
   clusLayer.clear();
-  clusPhi.clear();
-  clusEta.clear();
   clusSize.clear();
   clusX.clear();
   clusY.clear();
   clusZ.clear();
 
-  SvtxVertex* thePV = vertexMap->begin()->second;
-  vertex_x = thePV->get_x();
-  vertex_y = thePV->get_y();
-  vertex_z = thePV->get_z();
-
   triggerBCO = L1_BCOs.size() > 0 ? L1_BCOs[0] : event;
-  for (auto& iter : *trackMap)
+  TVector2 LocalUse;
+  TVector3 ClusterWorld;
+
+  TrkrHitSetContainer::ConstRange hitsetrange = trkrHitSetContainer->getHitSets(TrkrDefs::TrkrId::mvtxId);
+
+  for (TrkrHitSetContainer::ConstIterator hitsetitr = hitsetrange.first; hitsetitr != hitsetrange.second; ++hitsetitr)
   {
-    TrackSeed* silseed = iter.second->get_silicon_seed(); 
-    TVector2 LocalUse;
-    TVector3 ClusterWorld;
+    TrkrClusterContainer::ConstRange clusterrange = trktClusterContainer->getClusters(hitsetitr->first);
 
-    for (SvtxTrack::ConstClusterKeyIter iter_local = silseed->begin_cluster_keys();
-     iter_local != silseed->end_cluster_keys();
-     ++iter_local)
+    for (TrkrClusterContainer::ConstIterator clusteritr = clusterrange.first; clusteritr != clusterrange.second; ++clusteritr)
     {
-      TrkrDefs::cluskey cluster_key = *iter_local;
+      TrkrDefs::cluskey cluster_key = clusteritr->first;
+      TrkrCluster *cluster = clusteritr->second;
       layer = TrkrDefs::getLayer(cluster_key);
-
-      TrkrCluster *cluster = trktClusterContainer->findCluster(cluster_key);
 
       localX = cluster->getLocalX();
       localY = cluster->getLocalY();
@@ -168,8 +142,6 @@ int silicon_detector_analyser::process_event(PHCompositeNode *topNode)
       }
 
       clusLayer.push_back(layer);
-      clusPhi.push_back(iter.second->get_phi());
-      clusEta.push_back(iter.second->get_eta());
       clusSize.push_back(cluster->getAdc());
       clusX.push_back(ClusterWorld.X());
       clusY.push_back(ClusterWorld.Y());
